@@ -8,7 +8,7 @@ module.exports = function block (self) {
     get: (hash, callback) => {
       hash = cleanHash(hash)
 
-      self._blockS.getBlock(hash, callback)
+      self._blockS.get(hash, callback)
     },
     put: (block, callback) => {
       if (Array.isArray(block)) {
@@ -18,7 +18,7 @@ module.exports = function block (self) {
         block = new Block(block)
       }
 
-      self._blockS.addBlock(block, (err) => {
+      self._blockS.put(block, (err) => {
         callback(err, block)
       })
     },
@@ -29,7 +29,7 @@ module.exports = function block (self) {
     stat: (hash, callback) => {
       hash = cleanHash(hash)
 
-      self._blockS.getBlock(hash, (err, block) => {
+      self._blockS.get(hash, (err, block) => {
         if (err) {
           return callback(err)
         }
