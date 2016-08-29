@@ -14,11 +14,13 @@ const toPull = require('stream-to-pull-stream')
 module.exports = function files (self) {
   return {
     createAddStream: (callback) => {
-      return toStream.duplex(pull(
+      callback(null, toStream(pull(
         pull.map(normalizeContent),
+        pull.flatten(),
         importer(self._dagS),
-        pull.asyncMap(prepareFile.bind(null, self))
-      ))
+        pull.asyncMap(prepareFile.bind(null, self)),
+        pull.through(console.log)
+      )))
     },
     add: promisify((data, callback) => {
       if (!callback || typeof callback !== 'function') {
@@ -26,8 +28,7 @@ module.exports = function files (self) {
       }
 
       pull(
-        pull.values(data),
-        pull.map(normalizeContent),
+        pull.values(normalizeContent(data)),
         importer(self._dagS),
         pull.asyncMap(prepareFile.bind(null, self)),
         pull.collect(callback)
@@ -53,13 +54,21 @@ module.exports = function files (self) {
         pull.flatten(),
         pull.collect((err, files) => {
           if (err) return callback(err)
-          callback(null, toStream.source(files[0].content))
+          callback(null, contentToStream(files[0].content))
         })
       )
     }),
 
     get: promisify((hash, callback) => {
-      const exportFile = toStream.source(exporter(hash, self._dagS))
+      const exportFile = toStream.source(pull(
+        exporter(hash, self._dagS),
+        pull.map((file) => {
+          if (file.content) {
+            file.content = contentToStream(file.content)
+          }
+          return file
+        })
+      ))
       callback(null, exportFile)
     })
   }
@@ -71,39 +80,58 @@ function prepareFile (self, file, cb) {
     if (err) return cb(err)
 
     cb(null, {
-      path: file.path,
+      path: file.path || bs58mh,
       hash: bs58mh,
       size: node.size()
     })
   })
 }
 
-function normalizeContent (data) {
-  // Buffer input
-  if (Buffer.isBuffer(data)) {
-    data = {
-      path: '',
-      content: pull.values(data)
-    }
+function normalizeContent (content) {
+  if (!Array.isArray(content)) {
+    content = [content]
   }
 
-  // Readable stream input
-  if (isStream.isReadable(data)) {
-    data = {
-      path: '',
-      content: toPull.source(data)
-    }
-  }
-
-  if (data && data.content && typeof data.content !== 'function') {
-    if (Buffer.isBuffer(data.content)) {
-      data.content = pull.values(data.content)
+  return content.map((data) => {
+    // Buffer input
+    if (Buffer.isBuffer(data)) {
+      data = {
+        path: '',
+        content: pull.values(data)
+      }
     }
 
-    if (isStream.isReadable(data.content)) {
-      data.content = toPull.source(data.content)
+    // Readable stream input
+    if (isStream.isReadable(data)) {
+      data = {
+        path: '',
+        content: toPull.source(data)
+      }
     }
-  }
 
-  return data
+    if (data && data.content && typeof data.content !== 'function') {
+      if (Buffer.isBuffer(data.content)) {
+        data.content = pull.values(data.content)
+      }
+
+      if (isStream.isReadable(data.content)) {
+        data.content = toPull.source(data.content)
+      }
+    }
+
+    return data
+  })
+}
+
+function contentToStream (content) {
+  return toStream.source(pull(
+    content,
+    pull.map((chunk) => {
+      if (Buffer.isBuffer(chunk)) {
+        return chunk
+      }
+
+      return  Buffer([chunk])
+    })
+  ))
 }
