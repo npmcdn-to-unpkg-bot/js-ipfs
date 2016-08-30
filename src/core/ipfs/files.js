@@ -60,7 +60,7 @@ module.exports = function files (self) {
     }),
 
     get: promisify((hash, callback) => {
-      const exportFile = toStream.source(pull(
+      callback(null, toStream.source(pull(
         exporter(hash, self._dagS),
         pull.map((file) => {
           if (file.content) {
@@ -68,8 +68,7 @@ module.exports = function files (self) {
           }
           return file
         })
-      ))
-      callback(null, exportFile)
+      )))
     })
   }
 }
@@ -97,7 +96,7 @@ function normalizeContent (content) {
     if (Buffer.isBuffer(data)) {
       data = {
         path: '',
-        content: pull.values(data)
+        content: pull.values([data])
       }
     }
 
@@ -111,7 +110,7 @@ function normalizeContent (content) {
 
     if (data && data.content && typeof data.content !== 'function') {
       if (Buffer.isBuffer(data.content)) {
-        data.content = pull.values(data.content)
+        data.content = pull.values([data.content])
       }
 
       if (isStream.isReadable(data.content)) {
