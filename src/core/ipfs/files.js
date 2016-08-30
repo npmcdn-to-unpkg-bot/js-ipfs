@@ -130,7 +130,7 @@ function contentToStream (content) {
         return chunk
       }
 
-      return  Buffer([chunk])
+      return Buffer([chunk])
     })
   ))
 }

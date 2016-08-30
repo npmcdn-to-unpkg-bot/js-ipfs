@@ -39,7 +39,6 @@ describe('core', function () {
       const blob = blocks ? blocksBlob : mainBlob
       const key = blocks ? file.key.replace(/^blocks\//, '') : file.key
 
-
       pull(
         pull.values([file.value]),
         blob.write(key, cb)
