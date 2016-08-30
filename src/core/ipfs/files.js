@@ -14,14 +14,18 @@ const toPull = require('stream-to-pull-stream')
 module.exports = function files (self) {
   return {
     createAddStream: (callback) => {
-      callback(null, toStream(pull(
+      callback(null, toStream(this.createAddPullStream()))
+    },
+
+    createAddPullStream: () => {
+      return pull(
         pull.map(normalizeContent),
         pull.flatten(),
         importer(self._dagS),
-        pull.asyncMap(prepareFile.bind(null, self)),
-        pull.through(console.log)
-      )))
+        pull.asyncMap(prepareFile.bind(null, self))
+      )
     },
+
     add: promisify((data, callback) => {
       if (!callback || typeof callback !== 'function') {
         callback = function noop () {}

@@ -7,7 +7,7 @@ const expect = require('chai').expect
 const path = require('path')
 const clean = require('../../utils/clean')
 
-describe.only('--node only', () => {
+describe('--node only', () => {
   const repoExample = path.join(__dirname, '../../go-ipfs-repo')
   const repoTests = require('../../utils/repo-path')
 
