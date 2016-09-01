@@ -7,7 +7,7 @@ module.exports = function block (self) {
   return {
     get: (hash, callback) => {
       hash = cleanHash(hash)
-
+      console.log('block.get', hash)
       self._blockS.get(hash, callback)
     },
     put: (block, callback) => {

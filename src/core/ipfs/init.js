@@ -20,8 +20,17 @@ module.exports = function init (self) {
     opts.emptyRepo = opts.emptyRepo || false
     opts.bits = opts.bits || 2048
 
+    let config
     // Pre-set config values.
-    const config = JSON.parse(fs.readFileSync(path.join(__dirname, '../../init-files/default-config.json')).toString())
+    try {
+      config = JSON.parse(
+        fs.readFileSync(
+          path.join(__dirname, '../../init-files/default-config.json')
+        ).toString()
+      )
+    } catch (err) {
+      return callback(err)
+    }
 
     // Verify repo does not yet exist.
     self._repo.exists((err, exists) => {
@@ -53,7 +62,7 @@ module.exports = function init (self) {
       const version = '3'
 
       self._repo.version.set(version, (err) => {
-        if (err) { return callback(err) }
+        if (err) return callback(err)
 
         writeConfig()
       })
@@ -62,7 +71,7 @@ module.exports = function init (self) {
     // Write the config to the repo.
     function writeConfig () {
       self._repo.config.set(config, (err) => {
-        if (err) { return callback(err) }
+        if (err) return callback(err)
 
         addDefaultAssets()
       })
