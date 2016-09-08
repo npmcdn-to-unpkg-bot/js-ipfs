@@ -7,7 +7,6 @@ module.exports = function block (self) {
   return {
     get: (hash, callback) => {
       hash = cleanHash(hash)
-      console.log('block.get', hash)
       self._blockS.get(hash, callback)
     },
     put: (block, callback) => {
@@ -24,7 +23,7 @@ module.exports = function block (self) {
     },
     del: (hash, callback) => {
       hash = cleanHash(hash)
-      self._blockS.deleteBlock(hash, callback)
+      self._blockS.delete(hash, callback)
     },
     stat: (hash, callback) => {
       hash = cleanHash(hash)

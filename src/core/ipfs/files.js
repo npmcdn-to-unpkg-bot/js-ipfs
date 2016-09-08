@@ -8,6 +8,7 @@ const isStream = require('isstream')
 const promisify = require('promisify-es6')
 const multihashes = require('multihashes')
 const pull = require('pull-stream')
+const sort = require('pull-sort')
 const toStream = require('pull-stream-to-stream')
 const toPull = require('stream-to-pull-stream')
 
@@ -35,6 +36,11 @@ module.exports = function files (self) {
         pull.values(normalizeContent(data)),
         importer(self._dagS),
         pull.asyncMap(prepareFile.bind(null, self)),
+        sort((a, b) => {
+          if (a.path < b.path) return 1
+          if (a.path > b.path) return -1
+          return 0
+        }),
         pull.collect(callback)
       )
     }),
@@ -58,7 +64,7 @@ module.exports = function files (self) {
         pull.flatten(),
         pull.collect((err, files) => {
           if (err) return callback(err)
-          callback(null, contentToStream(files[0].content))
+          callback(null, toStream.source(files[0].content))
         })
       )
     }),
@@ -68,8 +74,13 @@ module.exports = function files (self) {
         exporter(hash, self._dagS),
         pull.map((file) => {
           if (file.content) {
-            file.content = contentToStream(file.content)
+            file.content = toStream.source(pull(
+              file.content,
+              pull.through((val) => console.log('r', file.path, val.length))
+            ))
+            file.content.pause()
           }
+
           return file
         })
       )))
@@ -124,17 +135,4 @@ function normalizeContent (content) {
 
     return data
   })
-}
-
-function contentToStream (content) {
-  return toStream.source(pull(
-    content,
-    pull.map((chunk) => {
-      if (Buffer.isBuffer(chunk)) {
-        return chunk
-      }
-
-      return Buffer([chunk])
-    })
-  ))
 }
